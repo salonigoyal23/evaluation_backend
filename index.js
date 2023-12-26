@@ -47,6 +47,46 @@ app.post('/register', async (req, res) => {
     }
 })
 
+app.post('/login', async(req, res) => {
+    try{
+        const user = await User.findOne({email: req.body.email});
+        if( !user || !(await bcrypt.compare(req.body.password, user.password)) ) {
+            res.status(400).json({message: "User not found"});    
+        }
+        res.status(200).json({message: "User found successfully", data: user});
+    } 
+    catch(error) {
+        res.status(500).json({message: "Error"});
+    }
+})
+
+app.post('/notices', async(req, res) => {
+    try{
+        const notice = new Notice({
+            title: req.body.title,
+            body: req.body.body,
+            category: req.body.category,
+            date : req.body.date
+        })
+        await notice.save();
+        res.status(200).json({message: "Notice created successfully"});
+    }
+    catch(error) {
+        res.status(500).json({message: "Error"});
+    }
+})
+
+app.get('/notices', async(req, res) => {
+    try{
+        const filterData = req.query.category ? {category: req.query.category} : {};
+        const notices = await Notice.find({...filterData});
+        res.json(notices);
+    } 
+    catch(error) {
+        res.status(500).json({message: "Error"});
+    }
+})
+
 
 
 app.listen(PORT, () => {
