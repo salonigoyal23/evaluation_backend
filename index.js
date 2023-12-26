@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt= require('jsonwebtoken');
+const cors = require('cors');
 
 const app = express();
 
@@ -46,6 +47,7 @@ const authJWT = (req, res, next) => {
 const User = mongoose.model('User', userSchema);
 const Notice = mongoose.model('Notice', noticeSchema);
 
+app.use(cors());
 app.use(express.json());
 
 app.post('/register', async (req, res) => {
