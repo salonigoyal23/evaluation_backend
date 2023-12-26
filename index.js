@@ -87,6 +87,41 @@ app.get('/notices', async(req, res) => {
     }
 })
 
+app.put('/notices/:id', async(req, res) => {
+    try{
+        const notice = await Notice.findOne({_id: req.params.id});
+        if( !notice ) {
+            res.status(400).json({message: "Notice not found"});
+        }
+        else {
+            notice.title = req.body.title;
+            notice.body = req.body.body;
+            notice.category= req.body.category;
+            notice.date= req.body.date;
+            await notice.save();
+            res.status(200).json({message: "Notice updated successfully"})
+        }
+    }
+    catch(error) {
+        res.status(500).json({message: "Error"});
+    }
+})
+
+app.delete('/notices/:id', async(req, res) => {
+    try{
+        const notice = await Notice.findOne({_id: req.params.id});
+        if( !notice ) {
+            res.status(400).json({message: "Notice not found"});
+        }
+        else {
+            await notice.deleteOne();
+            res.status(200).json({message: "Notice deleted successfully"})
+        }
+    }
+    catch(error) {
+        res.status(500).json({message: "Error"});
+    }
+})
 
 
 app.listen(PORT, () => {
