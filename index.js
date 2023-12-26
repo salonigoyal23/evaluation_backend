@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv').config();
 const bcrypt = require('bcrypt');
+const jwt= require('jsonwebtoken');
 
 const app = express();
 
@@ -22,8 +23,25 @@ const noticeSchema = new mongoose.Schema({
     title: String,
     body: String,
     category: {type: String, enum: ["parking", "covid", "maintenance"]},
-    date : {type: Date}
+    date : {type: Date},
 });
+
+const authJWT = (req, res, next) => {
+    const token = req.header('Authorization');
+    if( !token ) {
+        res.status(403).json({message: "access denied"});
+    } else{
+        jwt.verify(token, process.env.JWTSECRET, (err, user) => {
+            if(err) {
+                res.status(403).json({message: "access denied"});
+            } else {
+                req.user = user;
+                next();
+            }
+        })
+    }
+}
+
 
 const User = mongoose.model('User', userSchema);
 const Notice = mongoose.model('Notice', noticeSchema);
@@ -52,15 +70,19 @@ app.post('/login', async(req, res) => {
         const user = await User.findOne({email: req.body.email});
         if( !user || !(await bcrypt.compare(req.body.password, user.password)) ) {
             res.status(400).json({message: "User not found"});    
+        } else {
+            const token = jwt.sign({id: user._id, email: user.email}, process.env.JWTSECRET, {
+                expiresIn: '1h',
+            })
+            res.status(200).json({token});
         }
-        res.status(200).json({message: "User found successfully", data: user});
     } 
     catch(error) {
         res.status(500).json({message: "Error"});
     }
 })
 
-app.post('/notices', async(req, res) => {
+app.post('/notices', authJWT, async(req, res) => {
     try{
         const notice = new Notice({
             title: req.body.title,
@@ -76,7 +98,7 @@ app.post('/notices', async(req, res) => {
     }
 })
 
-app.get('/notices', async(req, res) => {
+app.get('/notices', authJWT, async(req, res) => {
     try{
         const filterData = req.query.category ? {category: req.query.category} : {};
         const notices = await Notice.find({...filterData});
@@ -87,7 +109,7 @@ app.get('/notices', async(req, res) => {
     }
 })
 
-app.put('/notices/:id', async(req, res) => {
+app.put('/notices/:id', authJWT, async(req, res) => {
     try{
         const notice = await Notice.findOne({_id: req.params.id});
         if( !notice ) {
@@ -107,7 +129,7 @@ app.put('/notices/:id', async(req, res) => {
     }
 })
 
-app.delete('/notices/:id', async(req, res) => {
+app.delete('/notices/:id', authJWT, async(req, res) => {
     try{
         const notice = await Notice.findOne({_id: req.params.id});
         if( !notice ) {
